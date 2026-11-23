@@ -1,0 +1,10 @@
+/build*/
+/dist/
+/tests/
+*.log
+__pycache__/
+radioroom-error.txt
+
+/*-log.*
+/radioroom-error.txt
+/build-release.cmd
