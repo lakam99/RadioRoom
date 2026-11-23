@@ -23,6 +23,8 @@ public:
         editor->fileStatus=[this]{return source?juce::String(transport.isPlaying()?"PLAY / ":"STOP / ")+filename+" / "+juce::String(transport.getCurrentPosition(),1)+" S":"OPEN A MIX TO AUDITION";};
         editor->onDevices=[this]{auto selector=std::make_unique<juce::AudioDeviceSelectorComponent>(deviceManager,0,0,2,2,false,false,true,false);selector->setSize(480,420);juce::DialogWindow::LaunchOptions opt;opt.content.setOwned(selector.release());opt.dialogTitle="RadioRoom audio output";opt.dialogBackgroundColour=juce::Colours::darkgrey;opt.useNativeTitleBar=true;opt.escapeKeyTriggersCloseButton=true;opt.launchAsync();};
         addAndMakeVisible(*editor);setSize(editor->getWidth(),editor->getHeight());setAudioChannels(0,2);
+        auto updateResult=juce::File(juce::SystemStats::getEnvironmentVariable("LOCALAPPDATA",{})).getChildFile("RadioRoom/last-update-result.json");
+        if(updateResult.existsAsFile()&&updateResult.getSize()<65536){auto result=juce::JSON::parse(updateResult);updateResult.deleteFile();if(result.isObject()&&!(bool)result["passed"])juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon,"RadioRoom update was not installed",result["error"].toString()+"\nYour previous installation was retained.");}
         startTimer(1800);
     }
     ~MainPanel() override {stopTimer();shutdownAudio();transport.setSource(nullptr);source.reset();readAhead.stopThread(2000);juce::MemoryBlock state;processor.getStateInformation(state);prefs->setValue("state",state.toBase64Encoding());prefs->saveIfNeeded();editor.reset();}

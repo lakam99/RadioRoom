@@ -42,7 +42,7 @@ In standalone, **Open Mix** loads WAV, AIFF, FLAC or other JUCE-supported format
 
 ## Building and verification
 
-C++20, CMake 3.22+, and a native toolchain are required. JUCE 9.0.6 is vendored, with its licensing retained. On Windows, install Visual Studio 2022 C++ Build Tools. `Build-source.ps1` configures and builds both targets. `build-release.cmd` is the workstation-specific shortcut.
+C++20, CMake 3.22+, and a native toolchain are required. JUCE 9.0.6 is vendored, with its licensing retained. On Windows, install Visual Studio 2022 C++ Build Tools. `Build-source.ps1` configures and builds both targets.
 
 ```powershell
 ./Build-source.ps1
