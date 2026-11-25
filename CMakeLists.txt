@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(RadioRoom VERSION 0.1.1 LANGUAGES C CXX)
+project(RadioRoom VERSION 0.2.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -16,7 +16,7 @@ juce_add_plugin(RadioRoom COMPANY_NAME "Lakam Audio" BUNDLE_ID "audio.lakam.radi
  IS_SYNTH FALSE NEEDS_MIDI_INPUT FALSE NEEDS_MIDI_OUTPUT FALSE COPY_PLUGIN_AFTER_BUILD FALSE
  VST3_CATEGORIES Fx Reverb Distortion Dynamics NEEDS_WEB_BROWSER FALSE NEEDS_CURL FALSE
  ICON_BIG resources/generated/app-icon.png ICON_SMALL resources/generated/app-icon.png)
-target_sources(RadioRoom PRIVATE Source/Engine.cpp Source/Processor.cpp Source/Editor.cpp
+target_sources(RadioRoom PRIVATE Source/Engine.cpp Source/VinylTexture.cpp Source/Processor.cpp Source/Editor.cpp
  Source/RasterAssets.cpp Source/VfdDisplay.cpp)
 target_include_directories(RadioRoom PUBLIC Source "${CMAKE_CURRENT_SOURCE_DIR}/third_party/JUCE/modules")
 target_compile_definitions(RadioRoom PUBLIC JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1 JUCE_WEB_BROWSER=0

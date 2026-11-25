@@ -3,9 +3,11 @@
 
 juce::AudioProcessorValueTreeState::ParameterLayout RadioProcessor::layout(){
     juce::AudioProcessorValueTreeState::ParameterLayout result;
-    for(int i=0;i<ControlCount;++i){juce::NormalisableRange<float> range(minimums[i],maximums[i],i==Era?1.f:.001f);if(i==Decay)range.setSkewForCentre(.55f);
+    for(int i=0;i<Crackle;++i){juce::NormalisableRange<float> range(minimums[i],maximums[i],i==Era?1.f:.001f);if(i==Decay)range.setSkewForCentre(.55f);
         result.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{ids[i],1},names[i],range,defaults[i]));}
-    result.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"bypass",1},"Bypass",false));return result;
+    result.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"bypass",1},"Bypass",false));
+    // Append after bypass: preserve every parameter index from 0.1.x sessions.
+    result.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"crackle",1},"Crackle",juce::NormalisableRange<float>{0,1,.001f},0));return result;
 }
 RadioProcessor::RadioProcessor():AudioProcessor(BusesProperties().withInput("Mix",juce::AudioChannelSet::stereo(),true).withOutput("Radio",juce::AudioChannelSet::stereo(),true)),state(*this,nullptr,"RadioRoom",layout()){
     for(int i=0;i<ControlCount;++i)params[(size_t)i]=state.getRawParameterValue(ids[i]);bypassParam=state.getRawParameterValue("bypass");
@@ -13,14 +15,17 @@ RadioProcessor::RadioProcessor():AudioProcessor(BusesProperties().withInput("Mix
 void RadioProcessor::prepareToPlay(double sr,int size){engine.prepare(sr,size);std::array<float,ControlCount> v{};for(int i=0;i<ControlCount;++i)v[(size_t)i]=params[(size_t)i]->load();engine.targets(v,bypassParam->load()>.5f,true);setLatencySamples(engine.latency());}
 void RadioProcessor::process(juce::AudioBuffer<float>& b,bool hostBypass){
     juce::ScopedNoDenormals guard;std::array<float,ControlCount> v{};for(int i=0;i<ControlCount;++i)v[(size_t)i]=params[(size_t)i]->load(std::memory_order_relaxed);
-    engine.targets(v,hostBypass||bypassParam->load()>.5f);engine.process(b);
+    int transport=-1;if(standalone.load())transport=playing.load()?1:0;else if(auto* head=getPlayHead())if(auto position=head->getPosition())transport=position->getIsPlaying()?1:0;
+    engine.targets(v,hostBypass||bypassParam->load()>.5f);engine.process(b,transport);
     inputMeter.store(engine.inputPeak);outputMeter.store(engine.outputPeak);reductionMeter.store(engine.reduction);
 }
 void RadioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer& m){process(b,false);m.clear();}
 void RadioProcessor::processBlockBypassed(juce::AudioBuffer<float>& b,juce::MidiBuffer& m){process(b,true);m.clear();}
 juce::AudioProcessorEditor* RadioProcessor::createEditor(){return new RadioEditor(*this);}
 void RadioProcessor::getStateInformation(juce::MemoryBlock& b){auto copy=state.copyState();copy.setProperty("skin",skin.load(),nullptr);copyXmlToBinary(*copy.createXml(),b);}
-void RadioProcessor::setStateInformation(const void* d,int size){if(auto xml=getXmlFromBinary(d,size)){auto tree=juce::ValueTree::fromXml(*xml);if(tree.hasType("RadioRoom")){skin.store(juce::jlimit(0,2,(int)tree.getProperty("skin",0)));state.replaceState(tree);}}}
+void RadioProcessor::setStateInformation(const void* d,int size){if(auto xml=getXmlFromBinary(d,size)){auto tree=juce::ValueTree::fromXml(*xml);if(tree.hasType("RadioRoom")){
+    if(!tree.getChildWithProperty("id","crackle").isValid()){juce::ValueTree parameter("PARAM");parameter.setProperty("id","crackle",nullptr);parameter.setProperty("value",0.f,nullptr);tree.addChild(parameter,-1,nullptr);}
+    skin.store(juce::jlimit(0,2,(int)tree.getProperty("skin",0)));state.replaceState(tree);}}}
 void RadioProcessor::setControl(int i,float v){auto* q=state.getParameter(ids[i]);q->beginChangeGesture();q->setValueNotifyingHost(q->convertTo0to1(v));q->endChangeGesture();}
 std::array<float,ControlCount> RadioProcessor::presetValues(int n){
     std::array<float,ControlCount> v{};std::copy(std::begin(defaults),std::end(defaults),v.begin());

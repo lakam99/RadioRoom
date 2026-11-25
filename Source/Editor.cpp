@@ -38,7 +38,8 @@ RadioEditor::~RadioEditor(){stopTimer();setLookAndFeel(nullptr);}
 void RadioEditor::timerCallback(){input=std::max(p.inputMeter.load(),input*.86f);output=std::max(p.outputMeter.load(),output*.86f);reduction=std::max(p.reductionMeter.load(),reduction*.85f);if(isLooping)loop.setToggleState(isLooping(),juce::dontSendNotification);if(isLoaded)for(auto* b:{&play,&stop,&rewind,&loop})b->setEnabled(isLoaded());repaint();}
 void RadioEditor::resized(){
     for(int i=0;i<8;++i){cells[(size_t)i]={45+i*127,239,121,171};knobs[(size_t)i].setBounds(cells[(size_t)i].withTrimmedTop(21).withTrimmedBottom(31));}
-    for(int j=0;j<6;++j){int i=j+8;cells[(size_t)i]={61+j*164,455,149,167};knobs[(size_t)i].setBounds(cells[(size_t)i].withTrimmedTop(21).withTrimmedBottom(31));}
+    constexpr int lower[]{Room,Decay,Distance,Width,Crackle,Mix,Output};
+    for(int j=0;j<7;++j){int i=lower[j];cells[(size_t)i]={49+j*143,455,136,167};knobs[(size_t)i].setBounds(cells[(size_t)i].withTrimmedTop(21).withTrimmedBottom(31));}
     preset.setBounds(52,654,90,32);skinButton.setBounds(52,697,90,30);bypass.setBounds(943,657,103,41);
     open.setBounds(479,659,98,34);rewind.setBounds(589,656,52,39);play.setBounds(642,656,52,39);stop.setBounds(695,656,52,39);loop.setBounds(748,656,52,39);device.setBounds(813,659,90,34);
     updates.setBounds(943,703,103,27);

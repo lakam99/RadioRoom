@@ -1,13 +1,14 @@
 #pragma once
 #include <juce_dsp/juce_dsp.h>
+#include "VinylTexture.h"
 
 enum Control { Era, Bandwidth, Tubes, Speaker, Body, Presence, Glue, Input,
-               Room, Decay, Distance, Width, Mix, Output, ControlCount };
-inline constexpr const char* ids[]{"era","bandwidth","tubes","speaker","body","presence","glue","input","room","decay","distance","width","mix","output"};
-inline constexpr const char* names[]{"Era","Bandwidth","Tubes","Speaker","Body","Presence","Glue","Input","Room","Decay","Distance","Width","Mix","Output"};
-inline constexpr float defaults[]{1952,.62f,.24f,.38f,1,-1,.28f,0,.22f,.48f,.25f,.25f,1,-2};
-inline constexpr float minimums[]{1920,0,0,0,-6,-6,0,-18,0,.15f,0,0,0,-24};
-inline constexpr float maximums[]{1959,1,1,1,6,6,1,18,1,1.8f,1,1,1,12};
+               Room, Decay, Distance, Width, Mix, Output, Crackle, ControlCount };
+inline constexpr const char* ids[]{"era","bandwidth","tubes","speaker","body","presence","glue","input","room","decay","distance","width","mix","output","crackle"};
+inline constexpr const char* names[]{"Era","Bandwidth","Tubes","Speaker","Body","Presence","Glue","Input","Room","Decay","Distance","Width","Mix","Output","Crackle"};
+inline constexpr float defaults[]{1952,.62f,.24f,.38f,1,-1,.28f,0,.22f,.48f,.25f,.25f,1,-2,0};
+inline constexpr float minimums[]{1920,0,0,0,-6,-6,0,-18,0,.15f,0,0,0,-24,0};
+inline constexpr float maximums[]{1959,1,1,1,6,6,1,18,1,1.8f,1,1,1,12,1};
 inline constexpr const char* descriptions[]{
  "Morph between narrow 1920s radio and a fuller 1950s broadcast character.",
  "Open the radio passband. Low settings trim bass and treble; high settings retain more of the mix.",
@@ -22,7 +23,8 @@ inline constexpr const char* descriptions[]{
  "Move the ensemble away from the common microphone: more reflections and softer detail.",
  "Stereo width. Zero is mono; 100 percent preserves the input's original width.",
  "Latency-aligned dry / processed blend. Zero passes the delayed original exactly.",
- "Final processed output trim, in dB. Dry and bypass remain at original level."};
+ "Final processed output trim, in dB. Dry and bypass remain at original level.",
+ "Procedural vinyl surface wear: fine irregular ticks, occasional dusty pops and a soft surface floor. Zero is off. Automatable; follows playback and the radio's tone."};
 
 struct Filter {
     float z1=0,z2=0;
@@ -36,13 +38,16 @@ class RadioEngine {
 public:
     void prepare(double sampleRate,int maxBlock);
     void targets(const std::array<float,ControlCount>&,bool bypass,bool immediate=false) noexcept;
-    void process(juce::AudioBuffer<float>&) noexcept;
+    void process(juce::AudioBuffer<float>&,int transport=-1) noexcept;
     int latency() const noexcept{return latencySamples;}
     float inputPeak=0,outputPeak=0,reduction=0;
 private:
     double sr=48000;
     static constexpr int quantum=32;
-    int latencySamples=0,dryWrite=0,earlyWrite=0,coefficientCounter=0;
+    int latencySamples=0,dryWrite=0,earlyWrite=0,noiseHold=0;
+    uint32_t coefficientCounter=0;
+    VinylTexture vinyl;
+    float noiseGate=0,noiseAttack=0,noiseRelease=0;
     std::array<juce::SmoothedValue<float>,ControlCount> smooth;
     juce::SmoothedValue<float> wetEnable;
     juce::dsp::Oversampling<float> oversampling{2,2,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,true};

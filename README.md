@@ -1,4 +1,4 @@
-# RadioRoom 0.1.1
+# RadioRoom 0.2.0
 
 A mix-bus VST3 effect and standalone player for a 1920s-to-1950s radio sound. A single shared room feeds stereo-linked compression and an oversampled tube/speaker path, helping separate recordings feel like one ensemble in one acoustic space.
 
@@ -8,7 +8,7 @@ Put **one instance on the bus containing the entire mix**. Start with **1952 / W
 
 **1928 / Parlour wireless** is narrower, more focused and more coloured. **One room / Open ensemble** keeps more bandwidth and stereo while adding a common acoustic signature. These are creative era interpretations, not measured emulations of a specific radio model. A stereo mix processor cannot remove room reverberation already printed into individual recordings or reposition its individual instruments.
 
-All fourteen controls and bypass are host-automatable. Drag a knob; double-click to reset. Hover for help. Every live value uses a cyan fluorescent-style display. Three raster artwork finishes are included: ivory/walnut, graphite and walnut. The standalone native window follows the OS light/dark theme.
+All fifteen controls and bypass are host-automatable. Drag a knob; double-click to reset. Hover for help. Every live value uses a cyan fluorescent-style display. Three raster artwork finishes are included: ivory/walnut, graphite and walnut. The standalone native window follows the OS light/dark theme.
 
 | Control | Function |
 |---|---|
@@ -23,10 +23,15 @@ All fourteen controls and bypass are host-automatable. Drag a knob; double-click
 | Decay | Room decay, 0.15–1.8 seconds |
 | Distance | Direct/reflected balance and acoustic damping |
 | Width | Mono to original stereo width |
+| Crackle | Procedural vinyl ticks, dusty pops and a quiet surface floor; zero is off |
 | Mix | Latency-aligned dry / processed blend |
 | Output | Processed output trim |
 
-There is no added static, crackle, synthetic speech or always-on hiss. Silence stays silent until an existing room tail decays. Output is floating point and is not a brickwall limiter: high Input/Output/EQ settings can overload your next processor. Watch the output meter and reduce Output as needed. Dry and bypass retain original level and the fixed reported latency.
+**Crackle** adds nostalgic record wear: irregular fine ticks, occasional larger dusty pops and a low, filtered surface floor. Start around **30–45%** for subtle texture; higher settings increase both wear density and level. Events are synthesized continuously with random timing, polarity, strength and duration, plus slow density variation. There are no sampled loops or regular repeating clicks. The texture is added after the common room/compression stage and passes through Width, Tubes, Speaker, Bandwidth, Mix and Output, so it belongs to the same radio sound. Input and reduction meters continue to show the source and compressor; the output meter includes the texture.
+
+With a playing host transport, Crackle can continue through pauses. It fades when playback stops; standalone also detects the end of the file. If a host supplies no transport information, input activity opens the texture with a short hold/release for breaths and gaps. Crackle defaults to **zero**, including when restoring a pre-0.2 song or loading the existing factory presets. Existing parameter IDs and ordering are preserved. Dry Mix and bypass exclude the texture.
+
+Output is floating point and is not a brickwall limiter: high Input/Output/EQ settings can overload your next processor. Watch the output meter and reduce Output as needed. Dry and bypass retain original level and the fixed reported latency.
 
 ## Windows installation
 
@@ -56,6 +61,7 @@ RadioRoom.exe --test dsp-report.json
 RadioRoom.exe --host path/to/RadioRoom.vst3 --report host-report.json
 RadioRoom.exe --snapshot panel.png --skin 0
 RadioRoom.exe --process input.wav --output result.wav --preset 1
+RadioRoom.exe --process input.wav --output textured.wav --preset 1 --crackle 0.4
 ```
 
 Offline WAV rendering uses preset indices 0 (1928), 1 (1952), 2 (open ensemble), compensates plugin latency, writes 24-bit stereo and retains a 2.5-second room tail. It refuses to overwrite its input. It does not render the current standalone settings. Mono files are duplicated to stereo; multichannel files are not a supported mixdown workflow.

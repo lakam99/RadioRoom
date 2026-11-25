@@ -19,6 +19,7 @@ void RadioEngine::prepare(double rate,int) {
     for(int i=0;i<ControlCount;++i){smooth[(size_t)i].reset(sr,.06);smooth[(size_t)i].setCurrentAndTargetValue(defaults[i]);current[(size_t)i]=defaults[i];}
     wetEnable.reset(sr,.015);wetEnable.setCurrentAndTargetValue(1);
     detector=detectorLow=0;compressGain=1;coefficientCounter=0;
+    vinyl.prepare(sr);noiseGate=0;noiseHold=0;noiseAttack=(float)std::exp(-1/(sr*.015));noiseRelease=(float)std::exp(-1/(sr*.15));
     attack=(float)std::exp(-1/(sr*.016));release=(float)std::exp(-1/(sr*.22));gainPole=(float)std::exp(-1/(sr*.004));detectorCoefficient=(float)(1-std::exp(-2*juce::MathConstants<double>::pi*100/sr));coefficients();
 }
 void RadioEngine::targets(const std::array<float,ControlCount>& values,bool bypass,bool immediate) noexcept {
@@ -52,7 +53,7 @@ void RadioEngine::room(float& l,float& r) noexcept {
     float direct=1-amount*(.12f+.20f*distance),reflections=amount*(.45f+.65f*distance);
     l=l*direct+(earlyL+lateL*.65f)*reflections;r=r*direct+(earlyR+lateR*.65f)*reflections;
 }
-void RadioEngine::process(juce::AudioBuffer<float>& buffer) noexcept {
+void RadioEngine::process(juce::AudioBuffer<float>& buffer,int transport) noexcept {
     inputPeak=outputPeak=reduction=0;int channels=buffer.getNumChannels();if(channels<1)return;
     for(int offset=0;offset<buffer.getNumSamples();offset+=quantum){int n=std::min(quantum,buffer.getNumSamples()-offset);
         for(int j=0;j<n;++j){
@@ -71,6 +72,15 @@ void RadioEngine::process(juce::AudioBuffer<float>& buffer) noexcept {
             float knee=6,curve=over<=-knee*.5f?0:over>=knee*.5f?over:(over+knee*.5f)*(over+knee*.5f)/(2*knee);
             float gr=curve*(1-1/ratio);float desired=juce::Decibels::decibelsToGain(-gr);compressGain=gainPole*compressGain+(1-gainPole)*desired;reduction=std::max(reduction,-juce::Decibels::gainToDecibels(compressGain,-100.f));
             float makeup=juce::Decibels::decibelsToGain(glue*1.6f);l*=compressGain*makeup;r*=compressGain*makeup;
+            // Playback-medium texture follows the shared capture, before radio colour.
+            // Unknown transport (offline/monitor hosts) uses input activity plus a
+            // short hold, so texture spans breaths without running forever at idle.
+            float rawLevel=std::max(std::abs(buffer.getSample(0,offset+j)),channels>1?std::abs(buffer.getSample(1,offset+j)):0.f);
+            if(rawLevel>1e-5f)noiseHold=(int)(sr*.25);else if(noiseHold>0)--noiseHold;
+            bool activeTexture=transport>=0?transport>0:noiseHold>0;
+            float gateTarget=activeTexture?1.f:0.f,pole=gateTarget>noiseGate?noiseAttack:noiseRelease;noiseGate=pole*noiseGate+(1-pole)*gateTarget;
+            if(!activeTexture&&noiseGate<1e-6f)noiseGate=0;
+            auto texture=vinyl.tick(current[Crackle]);l+=texture[0]*noiseGate;r+=texture[1]*noiseGate;
             float mid=(l+r)*.5f,side=(l-r)*.5f*current[Width];l=mid+side;r=mid-side;
             for(int ch=0;ch<2;++ch){float x=ch==0?l:r;for(int index:{0,3,4})x=filters[(size_t)ch][(size_t)index].tick(x);wet.setSample(ch,j,x);}
             tubeAmount[(size_t)j]=current[Tubes];drive[(size_t)j]=1+7*current[Tubes];blend[(size_t)j]=current[Mix];gain[(size_t)j]=juce::Decibels::decibelsToGain(current[Output]);active[(size_t)j]=wetEnable.getNextValue();
